@@ -15,6 +15,7 @@ public class AiController : ControllerBase
         await foreach (var item in result)
         {
             yield return item;
+            await Task.Delay(10);
         }
     }
 
