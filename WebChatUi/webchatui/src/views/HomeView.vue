@@ -1,7 +1,7 @@
 <template>
-  <div>
+  <div class="chat-pad-container">
     <div class="chat-pad">
-      <div class="chat-item" v-for="chat in chats">
+      <div class="chat-item" v-for="(chat, index) in chats" :key="index">
         <div v-if="chat.role == 'user'" style="overflow: hidden">
           <p class="user-chat">{{ chat.content }}</p>
         </div>
@@ -22,18 +22,19 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import type { ChatInterface } from '../stores/interfaces/ChatInterface'
 
 const input = ref('')
 const canSend = ref(true)
 
 const canClickSend = computed(() => input.value.trim() !== '' && canSend.value)
 
-const chats = ref<any>([])
+const chats = ref<ChatInterface[]>([])
 
 async function onSend() {
   canSend.value = false
-  let baseUrl = 'http://localhost:5262/'
-  let url = baseUrl + 'api/ai'
+  const baseUrl = 'http://localhost:5262/'
+  const url = baseUrl + 'api/ai'
   chats.value.push({
     role: 'user',
     content: input.value
@@ -63,13 +64,14 @@ async function onSend() {
       let text = decoder.decode(value, { stream: true })
       if (text.startsWith('[')|| text.startsWith(',')){
         text = text.substring(1, text.length)
-        let jObject = JSON.parse(text)
+        const jObject = JSON.parse(text)
         chats.value[assistantMessageIndex].content += jObject.contents[0].text
       }
     }
   }
 }
 
+// 解析思考内容和回复内容
 function parseAssistantContent(content: string) {
   // 匹配 <think>...</think>
   const thinkRegex = /<think>([\s\S]*?)<\/think>/g;
@@ -111,6 +113,10 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.chat-pad-container{
+    margin-left: 50px;
+}
+
 .chat-pad {
   width: 600px;
   margin: auto;
