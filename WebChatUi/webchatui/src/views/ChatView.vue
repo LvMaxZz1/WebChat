@@ -17,6 +17,5 @@ import ChatList from '../components/ChatList.vue'
 import ChatPanel from '../components/ChatPanel.vue'
 </script>
 
-<style scoped>
-
+<style scoped lang="scss">
 </style>

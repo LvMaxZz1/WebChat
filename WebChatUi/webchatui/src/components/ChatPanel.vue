@@ -5,28 +5,152 @@
       <div class="chat-status">已连接</div>
     </div>
     <div class="chat-messages">
-      <div v-for="msg in messages" :key="msg.id" :class="['chat-message', msg.role]">
-        <div class="msg-bubble">
-          <div class="msg-content">{{ msg.content }}</div>
+      <el-scrollbar ref="scrollbarRef" height="712">
+        <div v-for="(chat, index) in chats" :key="index">
+          <div class="chat-message">
+            <div class="msg-bubble" v-if="chat.role === 'assistant'">
+              <template v-for="(part, idx) in parseAssistantContent(chat.content)" :key="idx">
+                <div v-if="part.type === 'text'" class="msg-content">{{ part.value }}</div>
+                <div v-else>
+                  <el-button class="msg-button">收起</el-button>
+                  <div class="think-box">{{ part.value }}</div>
+                </div>
+                <div class="msg-time">{{ chat.time }}</div>
+              </template>
+            </div>
+          </div>
+          <div class="chat-message-user">
+            <div class="msg-bubble" v-if="chat.role === 'user'">
+              <div class="msg-content">{{ chat.content }}</div>
+              <div class="msg-time">{{ chat.time }}</div>
+            </div>
+          </div>
         </div>
-        <div class="msg-time">{{ msg.time }}</div>
+      </el-scrollbar>
+      <div class="chat-input-bar">
+        <input v-model="input" class="chat-input" type="text" placeholder="输入消息..." />
+        <button class="chat-send-btn" @click="onSend" :disabled="!canClickSend">
+          <svg width="20" height="20" fill="#2563eb" viewBox="0 0 24 24">
+            <path d="M2 21l21-9-21-9v7l15 2-15 2z" />
+          </svg>
+        </button>
       </div>
-    </div>
-    <div class="chat-input-bar">
-      <input class="chat-input" type="text" placeholder="输入消息..." />
-      <button class="chat-send-btn">
-        <svg width="20" height="20" fill="#2563eb" viewBox="0 0 24 24"><path d="M2 21l21-9-21-9v7l15 2-15 2z"/></svg>
-      </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-const messages = [
-  { id: 1, role: 'ai', content: '您好！我是 WebChat AI 助手，很高兴为您服务。', time: '10:30 AM' },
-  { id: 2, role: 'user', content: '你好！我想了解一下你们的产品功能', time: '10:31 AM' },
-  { id: 3, role: 'ai', content: 'WebChat 提供以下主要功能：\n- 智能对话与问答\n- 多语言实时翻译\n- 知识库查询\n- 个性化推荐\n- 24/7 全天候服务', time: '10:32 AM' },
-];
+import { computed, onMounted, ref, nextTick } from 'vue'
+import type { ChatInterface } from '@/stores/interfaces/ChatInterface.ts'
+import type { ElScrollbar } from 'element-plus'
+
+const chats = ref<ChatInterface[]>([])
+const input = ref('')
+const canSend = ref(true)
+const canClickSend = computed(() => input.value.trim() !== '' && canSend.value)
+const scrollbarRef = ref<InstanceType<typeof ElScrollbar> | null>(null)
+
+async function onSend() {
+  canSend.value = false
+  const baseUrl = 'http://localhost:5262/'
+  const url = baseUrl + 'api/ai'
+  chats.value.push({
+    role: 'user',
+    content: input.value,
+    time: new Date().toDateString(),
+  })
+  input.value = ''
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ ChatItemDtos: chats.value })
+  })
+  canSend.value = true
+  let result = null
+  chats.value.push({
+    role: 'assistant',
+    content: '',
+    time: new Date().toDateString(),
+  })
+  const assistantMessageIndex = chats.value.length - 1
+
+  if (response.ok && response.body != null) {
+    result = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    while (true) {
+      if (result == null) return
+      const { done, value } = await result.read()
+      if (done) break
+      let text = decoder.decode(value, { stream: true })
+      if (text.startsWith('[')|| text.startsWith(',')){
+        text = text.substring(1, text.length)
+        const jObject = JSON.parse(text)
+        chats.value[assistantMessageIndex].content += jObject.contents[0].text
+      }
+       await rollTick()
+    }
+  }
+
+  // 测试逻辑
+  // for (let i = 0; i < 100; i++) {
+  //   if (i == 0) chats.value[assistantMessageIndex].content += '<think>'
+  //   else if (i == 99) chats.value[assistantMessageIndex].content += '</think>'
+  //   else chats.value[assistantMessageIndex].content += i
+  //   await new Promise((resolve) => setTimeout(resolve, 10))
+  //   await rollTick()
+  // }
+}
+
+// 解析思考内容和回复内容
+function parseAssistantContent(content: string) {
+  // 匹配 <think>...</think>
+  const thinkRegex = /<think>([\s\S]*?)<\/think>/g
+  const result: Array<{ type: 'think' | 'text'; value: string }> = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = thinkRegex.exec(content)) !== null) {
+    // 普通文本
+    if (match.index > lastIndex) {
+      result.push({
+        type: 'text',
+        value: content.slice(lastIndex, match.index),
+      })
+    }
+    // 思考内容
+    result.push({
+      type: 'think',
+      value: match[1].trim(),
+    })
+    lastIndex = thinkRegex.lastIndex
+  }
+  // 剩余文本
+  if (lastIndex < content.length) {
+    result.push({
+      type: 'text',
+      value: content.slice(lastIndex),
+    })
+  }
+  return result
+}
+
+async function rollTick() {
+  await nextTick(() => {
+    if (scrollbarRef.value) {
+      scrollbarRef.value.setScrollTop(Number.MAX_SAFE_INTEGER)
+    }
+  })
+}
+
+onMounted(() => {
+  chats.value.push({
+    role: 'assistant',
+    content: '你是一个聊天好伙伴，你能够陪用户聊天',
+    time: new Date().toDateString(),
+  })
+})
 </script>
 
 <style scoped>
@@ -42,7 +166,7 @@ const messages = [
   height: 56px;
   background: #fff;
   border: 1px solid var(--el-border-color, #e5e7eb);
-  border-radius:20px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -58,9 +182,10 @@ const messages = [
   font-size: 14px;
 }
 .chat-messages {
-  flex: 1;
-  padding: 24px;
+  height: 800px; /* 固定高度 */
+  max-height: 800px; /* 可选，防止超出 */
   overflow-y: auto;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -70,8 +195,10 @@ const messages = [
   flex-direction: column;
   align-items: flex-start;
 }
-.chat-message.user {
+.chat-message-user {
   align-items: flex-end;
+  display: flex;
+  flex-direction: column;
 }
 .msg-bubble {
   max-width: 60%;
@@ -83,9 +210,10 @@ const messages = [
   margin-bottom: 4px;
   white-space: pre-line;
 }
-.chat-message.user .msg-bubble {
+.chat-message-user .msg-bubble {
   background: #2563eb;
   color: #fff;
+  margin-right: 20px;
 }
 .msg-time {
   font-size: 12px;
@@ -95,7 +223,7 @@ const messages = [
 .chat-input-bar {
   display: flex;
   align-items: center;
-  padding: 16px 24px;
+  padding: 16px 12px;
   background: #fff;
   border-top: 1px solid #e5e7eb;
 }
@@ -118,5 +246,17 @@ const messages = [
 }
 .chat-send-btn:hover {
   background: #e8edfa;
+}
+.think-box {
+  display: block;
+  background: #f5f7fa;
+  color: #ccc;
+  margin: 10px 0;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-style: italic;
+  font-size: 0.95em;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.08);
+  border-top: 1px solid var(--el-border-color);
 }
 </style>

@@ -37,7 +37,8 @@ async function onSend() {
   const url = baseUrl + 'api/ai'
   chats.value.push({
     role: 'user',
-    content: input.value
+    content: input.value,
+    time:new Date().toDateString()
   })
   input.value = ''
   const response = await fetch(url, {
@@ -51,7 +52,8 @@ async function onSend() {
   let result = null
   chats.value.push({
     role: 'assistant',
-    content: ''
+    content: '',
+    time:new Date().toDateString()
   })
   const assistantMessageIndex = chats.value.length - 1
   if (response.ok && response.body != null) {
@@ -107,7 +109,8 @@ function parseAssistantContent(content: string) {
 onMounted(() => {
   chats.value.push({
     role: 'system',
-    content: '你是一个聊天好伙伴，你能够陪用户聊天'
+    content: '你是一个聊天好伙伴，你能够陪用户聊天',
+    time:new Date().toDateString()
   })
 })
 </script>

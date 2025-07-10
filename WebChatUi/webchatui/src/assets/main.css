@@ -2,3 +2,11 @@
   --el-color-primary: #2563eb;
   --el-border-radius-base: 8px;
 }
+body {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE 和 Edge */
+  overflow: hidden;
+}
+body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
