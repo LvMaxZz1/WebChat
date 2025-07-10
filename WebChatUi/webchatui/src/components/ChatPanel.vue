@@ -5,7 +5,7 @@
       <div class="chat-status">已连接</div>
     </div>
     <div class="chat-messages">
-      <el-scrollbar ref="scrollbarRef" height="712">
+      <el-scrollbar ref="scrollbarRef">
         <div v-for="(chat, index) in chats" :key="index">
           <div class="chat-message">
             <div class="msg-bubble" v-if="chat.role === 'assistant'">
@@ -182,8 +182,7 @@ onMounted(() => {
   font-size: 14px;
 }
 .chat-messages {
-  height: 800px; /* 固定高度 */
-  max-height: 800px; /* 可选，防止超出 */
+  height: 85vh; /* 固定高度 */
   overflow-y: auto;
   padding: 24px;
   display: flex;

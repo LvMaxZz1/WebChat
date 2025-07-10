@@ -5,7 +5,7 @@
         <el-aside width="310">
           <ChatList />
         </el-aside>
-        <el-main>
+        <el-main class="el-main-class">
           <ChatPanel/>
         </el-main>
       </el-container>
@@ -18,4 +18,7 @@ import ChatPanel from '../components/ChatPanel.vue'
 </script>
 
 <style scoped lang="scss">
+.el-main-class{
+  height: 80vw;
+}
 </style>
