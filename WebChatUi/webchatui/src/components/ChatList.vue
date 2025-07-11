@@ -3,42 +3,40 @@
     <el-container class="chat-list-container">
       <el-header class="header-center">
         <el-tooltip content="新建对话" placement="top">
-          <button class="new-chat">+ New Chat</button>
+          <button class="new-chat" @click="newChatClick" >+ New Chat</button>
         </el-tooltip>
       </el-header>
       <el-divider></el-divider>
-      <el-aside>
-        <div
-          v-for="item in menuItems"
-          :key="item.id"
-          :class="['chat-item', item.id == selectedId ? 'active' : '']"
-          @click="selectChat(item.id)"
-        >
-          <div class="chat-info">
-            <div class="chat-title">{{ item.label }}</div>
+      <el-scrollbar ref="scrollbarRef">
+        <el-aside>
+          <div
+            v-for="item in chatStore.menuItems"
+            :key="item.id"
+            :class="['chat-item', item.id == chatStore.selectedId ? 'active' : '']"
+            @click="chatStore.selectChat(item.id)">
+            <div class="chat-info">
+              <div class="chat-title">{{ item.label }}</div>
+            </div>
           </div>
-        </div>
-      </el-aside>
+        </el-aside>
+      </el-scrollbar>
     </el-container>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useChatStore } from '@/stores/chatStore'
+import type { ElScrollbar } from 'element-plus'
 import { ref } from 'vue'
 
-const menuItems = ref<any>([
-  { id: 1, label: 'Getting Started' },
-  { id: 2, label: 'Product Features' },
-  { id: 3, label: 'Technical Support' },
-  { id: 4, label: 'Pricing Plans' },
-  { id: 5, label: 'Integration Help' },
-])
+const chatStore = useChatStore()
+const scrollbarRef = ref<InstanceType<typeof ElScrollbar> | null>(null)
 
-const selectedId = ref(1)
-
-function selectChat(id: number) {
-  selectedId.value = id
+function newChatClick() {
+  chatStore.newChat()
+  chatStore.rollTick(scrollbarRef)
 }
+
 </script>
 
 <style scoped lang="scss">
@@ -52,7 +50,6 @@ function selectChat(id: number) {
 .chat-list-container{
   height: 100%;
   width: 300px;
-  border: 1px solid var(--el-border-color, #e5e7eb);
 }
 
 .chat-list {
@@ -73,17 +70,10 @@ function selectChat(id: number) {
   transition: background 0.2s;
 }
 
-.chat-item.active,
 .chat-item:hover {
   background: #e8edfa;
 }
 
-.chat-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  margin-right: 12px;
-}
 
 .chat-info {
   flex: 1;
@@ -95,11 +85,6 @@ function selectChat(id: number) {
   margin-bottom: 4px;
 }
 
-.chat-desc {
-  font-size: 13px;
-  color: #888;
-}
-
 .new-chat {
   width: 200px;
   height: 50px;
@@ -109,6 +94,6 @@ function selectChat(id: number) {
   border-radius: 8px;
   cursor: pointer;
   font-weight: bold;
-  margin-top: 25px;
+  margin-bottom: 10px;
 }
 </style>

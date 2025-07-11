@@ -10,19 +10,37 @@
           <div class="chat-message">
             <div class="msg-bubble" v-if="chat.role === 'assistant'">
               <template v-for="(part, idx) in parseAssistantContent(chat.content)" :key="idx">
-                <div v-if="part.type === 'text'" class="msg-content">{{ part.value }}</div>
-                <div v-else>
-                  <el-button class="msg-button">收起</el-button>
-                  <div class="think-box">{{ part.value }}</div>
+                <div v-if="part.type === 'text'">
+                  <el-text>{{ part.value }}</el-text>
                 </div>
-                <div class="msg-time">{{ chat.time }}</div>
+                <div v-else>
+                  <el-button @click="updateThinkExpanded(chat)"  class="el-button-expanded" link type="info" style="padding: 0 4px;">
+                    思考过程
+                    <el-icon class="el-icon-class">
+                      <ArrowUp v-if="chat.thinkExpanded" />
+                      <ArrowDown v-else />
+                    </el-icon>
+                  </el-button>
+                  <el-text
+                    class="think-box"
+                    v-show="chat.thinkExpanded">
+                    {{ part.value }}
+                  </el-text>
+                </div>
               </template>
+              <div>
+                <el-text class="msg-time">{{ chat.time }}</el-text>
+              </div>
             </div>
           </div>
           <div class="chat-message-user">
             <div class="msg-bubble" v-if="chat.role === 'user'">
-              <div class="msg-content">{{ chat.content }}</div>
-              <div class="msg-time">{{ chat.time }}</div>
+              <div>
+                <el-text >{{ chat.content }}</el-text>
+              </div>
+              <div>
+                <el-text class="msg-time">{{ chat.time }}</el-text>
+              </div>
             </div>
           </div>
         </div>
@@ -40,67 +58,84 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, nextTick } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { ChatInterface } from '@/stores/interfaces/ChatInterface.ts'
 import type { ElScrollbar } from 'element-plus'
+import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { useChatStore } from '@/stores/chatStore.ts'
 
-const chats = ref<ChatInterface[]>([])
+const chatStore = useChatStore()
+const chats = ref([...chatStore.chatsMap[chatStore.selectedId] || []])
+
 const input = ref('')
 const canSend = ref(true)
 const canClickSend = computed(() => input.value.trim() !== '' && canSend.value)
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar> | null>(null)
 
+// 监听切换会话
+watch(() => chatStore.selectedId, (id) => {
+  chats.value = [...chatStore.chatsMap[id] || []]
+})
+
+// 监听内容变化，自动同步到 store
+watch(chats, (val) => {
+  chatStore.updateChats(val)
+}, { deep: true })
+
 async function onSend() {
   canSend.value = false
-  const baseUrl = 'http://localhost:5262/'
-  const url = baseUrl + 'api/ai'
+  // const baseUrl = 'http://localhost:5262/'
+  // const url = baseUrl + 'api/ai'
   chats.value.push({
     role: 'user',
     content: input.value,
     time: new Date().toDateString(),
+    thinkExpanded:true
   })
   input.value = ''
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ ChatItemDtos: chats.value })
-  })
+  // const response = await fetch(url, {
+  //   method: 'POST',
+  //   headers: {
+  //     'Content-Type': 'application/json'
+  //   },
+  //   body: JSON.stringify({ ChatItemDtos: chats.value })
+  // })
   canSend.value = true
   let result = null
   chats.value.push({
     role: 'assistant',
     content: '',
     time: new Date().toDateString(),
+    thinkExpanded:true
   })
   const assistantMessageIndex = chats.value.length - 1
 
-  if (response.ok && response.body != null) {
-    result = response.body.getReader()
-    const decoder = new TextDecoder('utf-8')
-    while (true) {
-      if (result == null) return
-      const { done, value } = await result.read()
-      if (done) break
-      let text = decoder.decode(value, { stream: true })
-      if (text.startsWith('[')|| text.startsWith(',')){
-        text = text.substring(1, text.length)
-        const jObject = JSON.parse(text)
-        chats.value[assistantMessageIndex].content += jObject.contents[0].text
-      }
-       await rollTick()
-    }
-  }
+  // if (response.ok && response.body != null) {
+  //   result = response.body.getReader()
+  //   const decoder = new TextDecoder('utf-8')
+  //   while (true) {
+  //     if (result == null) return
+  //     const { done, value } = await result.read()
+  //     if (done) break
+  //     let text = decoder.decode(value, { stream: true })
+  //     if (text.startsWith('[')|| text.startsWith(',')){
+  //       text = text.substring(1, text.length)
+  //       const jObject = JSON.parse(text)
+  //       chats.value[assistantMessageIndex].content += jObject.contents[0].text
+  //     }
+  //      await rollTick()
+  //   }
+  // }
 
   // 测试逻辑
-  // for (let i = 0; i < 100; i++) {
-  //   if (i == 0) chats.value[assistantMessageIndex].content += '<think>'
-  //   else if (i == 99) chats.value[assistantMessageIndex].content += '</think>'
-  //   else chats.value[assistantMessageIndex].content += i
-  //   await new Promise((resolve) => setTimeout(resolve, 10))
-  //   await rollTick()
-  // }
+  for (let i = 0; i < 200; i++) {
+    if (i == 0) chats.value[assistantMessageIndex].content += '<think>'
+    else if (i == 99) chats.value[assistantMessageIndex].content += '</think>'
+    else chats.value[assistantMessageIndex].content += i
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    await chatStore.rollTick(scrollbarRef)
+  }
+  chats.value[assistantMessageIndex].thinkExpanded = false
 }
 
 // 解析思考内容和回复内容
@@ -136,12 +171,8 @@ function parseAssistantContent(content: string) {
   return result
 }
 
-async function rollTick() {
-  await nextTick(() => {
-    if (scrollbarRef.value) {
-      scrollbarRef.value.setScrollTop(Number.MAX_SAFE_INTEGER)
-    }
-  })
+function updateThinkExpanded(chat: ChatInterface){
+  chat.thinkExpanded = !chat.thinkExpanded
 }
 
 onMounted(() => {
@@ -149,6 +180,7 @@ onMounted(() => {
     role: 'assistant',
     content: '你是一个聊天好伙伴，你能够陪用户聊天',
     time: new Date().toDateString(),
+    thinkExpanded: true
   })
 })
 </script>
@@ -210,7 +242,7 @@ onMounted(() => {
   white-space: pre-line;
 }
 .chat-message-user .msg-bubble {
-  background: #2563eb;
+  background: #e7f8ff;
   color: #fff;
   margin-right: 20px;
 }
@@ -250,12 +282,18 @@ onMounted(() => {
   display: block;
   background: #f5f7fa;
   color: #ccc;
-  margin: 10px 0;
+  margin-bottom: 20px;
   padding: 10px 16px;
   border-radius: 10px;
   font-style: italic;
   font-size: 0.95em;
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.08);
   border-top: 1px solid var(--el-border-color);
+}
+.el-icon-class{
+  margin-left: 5px;
+}
+.el-button-expanded{
+  margin-bottom: 10px;
 }
 </style>
