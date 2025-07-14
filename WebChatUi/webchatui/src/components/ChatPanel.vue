@@ -1,8 +1,9 @@
 <template>
   <div class="chat-panel">
     <div class="chat-header">
-      <div class="chat-title">WebChat</div>
-      <div class="chat-status">已连接</div>
+      <div class="chat-title">
+        {{ chatStore.menuItems.find(item => item.id === chatStore.selectedId)?.label || '未选择会话' }}
+      </div>
     </div>
     <div class="chat-messages">
       <el-scrollbar ref="scrollbarRef">

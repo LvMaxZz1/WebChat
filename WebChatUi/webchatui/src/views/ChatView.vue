@@ -6,7 +6,9 @@
           <ChatList />
         </el-aside>
         <el-main class="el-main-class">
-          <ChatPanel v-if="chatStore.menuItems.length > 0" />
+          <ChatPanel
+            v-if="chatStore.menuItems.length > 0 && chatStore.menuItems.find(item => item.id === chatStore.selectedId)"
+          />
           <SelectOrCreateChatTip v-else />
         </el-main>
       </el-container>

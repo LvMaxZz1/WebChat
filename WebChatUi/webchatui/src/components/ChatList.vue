@@ -84,6 +84,18 @@ function deleteChatClick(id:number) {
   background: #e8edfa;
 }
 
+.chat-item.active {
+  background: #2563eb;
+  color: #fff;
+
+  .chat-title {
+    color: #fff;
+  }
+  .el-icon-class {
+    color: #fff;
+  }
+}
+
 .chat-info {
   display: flex;
   justify-content: space-between;

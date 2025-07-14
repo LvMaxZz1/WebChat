@@ -5,7 +5,6 @@
 </template>
 
 <script setup lang="ts">
-// 这里可以根据需要引入 element-plus 的 Empty 组件
 </script>
 
 <style scoped>
