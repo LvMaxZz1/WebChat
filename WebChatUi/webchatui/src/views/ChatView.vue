@@ -6,7 +6,8 @@
           <ChatList />
         </el-aside>
         <el-main class="el-main-class">
-          <ChatPanel/>
+          <ChatPanel v-if="chatStore.menuItems.length > 0" />
+          <SelectOrCreateChatTip v-else />
         </el-main>
       </el-container>
     </el-container>
@@ -15,6 +16,11 @@
 <script setup lang="ts">
 import ChatList from '../components/ChatList.vue'
 import ChatPanel from '../components/ChatPanel.vue'
+import { useChatStore } from '@/stores/chatStore'
+import SelectOrCreateChatTip from '@/components/SelectOrCreateChatTip.vue'
+
+const chatStore = useChatStore()
+
 </script>
 
 <style scoped lang="scss">

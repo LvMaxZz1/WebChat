@@ -3,7 +3,7 @@
     <el-container class="chat-list-container">
       <el-header class="header-center">
         <el-tooltip content="新建对话" placement="top">
-          <button class="new-chat" @click="newChatClick" >+ New Chat</button>
+          <button class="new-chat" @click="newChatClick">+ New Chat</button>
         </el-tooltip>
       </el-header>
       <el-divider></el-divider>
@@ -13,9 +13,15 @@
             v-for="item in chatStore.menuItems"
             :key="item.id"
             :class="['chat-item', item.id == chatStore.selectedId ? 'active' : '']"
-            @click="chatStore.selectChat(item.id)">
+            @click="chatStore.selectChat(item.id)"
+          >
             <div class="chat-info">
               <div class="chat-title">{{ item.label }}</div>
+              <el-button link type="info" @click="deleteChatClick(item.id)"  style="padding: 0 6px">
+                <el-icon class="el-icon-class">
+                  <CircleClose />
+                </el-icon>
+              </el-button>
             </div>
           </div>
         </el-aside>
@@ -28,6 +34,7 @@
 import { useChatStore } from '@/stores/chatStore'
 import type { ElScrollbar } from 'element-plus'
 import { ref } from 'vue'
+import { CircleClose } from '@element-plus/icons-vue'
 
 const chatStore = useChatStore()
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar> | null>(null)
@@ -37,17 +44,20 @@ function newChatClick() {
   chatStore.rollTick(scrollbarRef)
 }
 
+function deleteChatClick(id:number) {
+  chatStore.deleteChat(id)
+}
+
 </script>
 
 <style scoped lang="scss">
-
-.header-center{
+.header-center {
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.chat-list-container{
+.chat-list-container {
   height: 100%;
   width: 300px;
 }
@@ -74,8 +84,10 @@ function newChatClick() {
   background: #e8edfa;
 }
 
-
 .chat-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   flex: 1;
 }
 
@@ -95,5 +107,9 @@ function newChatClick() {
   cursor: pointer;
   font-weight: bold;
   margin-bottom: 10px;
+}
+
+.el-icon-class{
+  color: #42b8dd;
 }
 </style>

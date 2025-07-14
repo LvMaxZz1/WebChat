@@ -84,8 +84,8 @@ watch(chats, (val) => {
 
 async function onSend() {
   canSend.value = false
-  // const baseUrl = 'http://localhost:5262/'
-  // const url = baseUrl + 'api/ai'
+  const baseUrl = 'http://localhost:5262/'
+  const url = baseUrl + 'api/ai'
   chats.value.push({
     role: 'user',
     content: input.value,
@@ -93,13 +93,13 @@ async function onSend() {
     thinkExpanded:true
   })
   input.value = ''
-  // const response = await fetch(url, {
-  //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json'
-  //   },
-  //   body: JSON.stringify({ ChatItemDtos: chats.value })
-  // })
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ ChatItemDtos: chats.value })
+  })
   canSend.value = true
   let result = null
   chats.value.push({
@@ -110,31 +110,31 @@ async function onSend() {
   })
   const assistantMessageIndex = chats.value.length - 1
 
-  // if (response.ok && response.body != null) {
-  //   result = response.body.getReader()
-  //   const decoder = new TextDecoder('utf-8')
-  //   while (true) {
-  //     if (result == null) return
-  //     const { done, value } = await result.read()
-  //     if (done) break
-  //     let text = decoder.decode(value, { stream: true })
-  //     if (text.startsWith('[')|| text.startsWith(',')){
-  //       text = text.substring(1, text.length)
-  //       const jObject = JSON.parse(text)
-  //       chats.value[assistantMessageIndex].content += jObject.contents[0].text
-  //     }
-  //      await rollTick()
-  //   }
-  // }
+  if (response.ok && response.body != null) {
+    result = response.body.getReader()
+    const decoder = new TextDecoder('utf-8')
+    while (true) {
+      if (result == null) return
+      const { done, value } = await result.read()
+      if (done) break
+      let text = decoder.decode(value, { stream: true })
+      if (text.startsWith('[')|| text.startsWith(',')){
+        text = text.substring(1, text.length)
+        const jObject = JSON.parse(text)
+        chats.value[assistantMessageIndex].content += jObject.contents[0].text
+      }
+       await chatStore.rollTick(scrollbarRef)
+    }
+  }
 
   // 测试逻辑
-  for (let i = 0; i < 200; i++) {
-    if (i == 0) chats.value[assistantMessageIndex].content += '<think>'
-    else if (i == 99) chats.value[assistantMessageIndex].content += '</think>'
-    else chats.value[assistantMessageIndex].content += i
-    await new Promise((resolve) => setTimeout(resolve, 10))
-    await chatStore.rollTick(scrollbarRef)
-  }
+  // for (let i = 0; i < 200; i++) {
+  //   if (i == 0) chats.value[assistantMessageIndex].content += '<think>'
+  //   else if (i == 99) chats.value[assistantMessageIndex].content += '</think>'
+  //   else chats.value[assistantMessageIndex].content += i
+  //   await new Promise((resolve) => setTimeout(resolve, 10))
+  //   await chatStore.rollTick(scrollbarRef)
+  // }
   chats.value[assistantMessageIndex].thinkExpanded = false
 }
 
@@ -177,7 +177,7 @@ function updateThinkExpanded(chat: ChatInterface){
 
 onMounted(() => {
   chats.value.push({
-    role: 'assistant',
+    role: 'system',
     content: '你是一个聊天好伙伴，你能够陪用户聊天',
     time: new Date().toDateString(),
     thinkExpanded: true

@@ -1,15 +1,12 @@
 ﻿import { defineStore } from 'pinia'
 import { nextTick } from 'vue'
+import type { ChatInterface } from '@/stores/interfaces/ChatInterface.ts'
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
-    menuItems: [
-      { id: 1, label: '新会话1' }
-    ],
-    selectedId: 1,
-    chatsMap: {
-      1: []
-    } as Record<number, any[]>
+    menuItems: [] as Array<{ id: number; label: string }>,
+    selectedId:  0 as number,
+    chatsMap: {} as Record<number, ChatInterface[]>
   }),
   actions: {
     selectChat(id: number) {
@@ -21,8 +18,17 @@ export const useChatStore = defineStore('chat', {
       this.chatsMap[newId] = []
       this.selectedId = newId
     },
-    updateChats(chats: any[]) {
+    updateChats(chats: ChatInterface[]) {
       this.chatsMap[this.selectedId] = chats
+    },
+    deleteChat(id: number) {
+      this.menuItems = this.menuItems.filter(item => item.id !== id)
+      delete this.chatsMap[id]
+      // 如果删除的是当前选中的会话
+      if (this.selectedId === id) {
+        // 新建一个空会话并切换到它
+        this.newChat()
+      }
     },
     async rollTick(scrollbarRef) {
       await nextTick(() => {
