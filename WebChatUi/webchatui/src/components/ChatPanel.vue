@@ -49,7 +49,7 @@
       <div class="chat-input-bar">
         <input v-model="input" class="chat-input" type="text" placeholder="输入消息..." />
         <button class="chat-send-btn" @click="onSend" :disabled="!canClickSend">
-          <svg width="20" height="20" fill="#2563eb" viewBox="0 0 24 24">
+          <svg width="20" height="20" viewBox="0 0 24 24">
             <path d="M2 21l21-9-21-9v7l15 2-15 2z" />
           </svg>
         </button>
@@ -209,10 +209,6 @@ onMounted(() => {
   font-size: 20px;
   font-weight: bold;
   color: #111827;
-}
-.chat-status {
-  color: #22c55e;
-  font-size: 14px;
 }
 .chat-messages {
   height: 85vh; /* 固定高度 */
